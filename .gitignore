@@ -107,4 +107,4 @@ venv.bak/
 
 simulation.spec
 
-lecture_*
+**/lecture_*
