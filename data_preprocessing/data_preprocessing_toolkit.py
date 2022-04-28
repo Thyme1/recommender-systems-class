@@ -40,9 +40,7 @@ class DataPreprocessingToolkit(object):
         :return: A DataFrame with filtered out corporate reservations.
         :rtype: pd.DataFrame
         """
-        ########################
-        # Write your code here #
-        ########################
+        return df.loc[(df['is_company'] == 0)]
 
     @staticmethod
     def filter_out_long_stays(df):
@@ -53,9 +51,8 @@ class DataPreprocessingToolkit(object):
         :return: A DataFrame with reservations shorter than 22 days.
         :rtype: pd.DataFrame
         """
-        ########################
-        # Write your code here #
-        ########################
+        return df.loc[(df['length_of_stay'] <= 21)]
+
 
     @staticmethod
     def filter_out_low_prices(df):
@@ -67,9 +64,8 @@ class DataPreprocessingToolkit(object):
         :return: A DataFrame with reservations with accommodation price bigger than 50.
         :rtype: pd.DataFrame
         """
-        ########################
-        # Write your code here #
-        ########################
+        return df.loc[(df['accommodation_price']) > 50]
+
 
     @staticmethod
     def fix_date_to(df):
@@ -80,6 +76,11 @@ class DataPreprocessingToolkit(object):
         :return: A DataFrame with fixed date_to.
         :rtype: pd.DataFrame
         """
+        df['date_to'] = df.date_to + timedelta(days=1)
+        
+        return df
+
+        
 
     @staticmethod
     def add_length_of_stay(df):
@@ -90,10 +91,11 @@ class DataPreprocessingToolkit(object):
         :return: A DataFrame with added length_of_stay column.
         :rtype: pd.DataFrame
         """
-        ########################
-        # Write your code here #
-        ########################
+        df['length_of_stay'] = (df.date_to - df.date_from).dt.days
+        
+        return df
 
+              
     @staticmethod
     def add_book_to_arrival(df):
         """
@@ -103,9 +105,9 @@ class DataPreprocessingToolkit(object):
         :return: A DataFrame with added book_to_arrival column.
         :rtype: pd.DataFrame
         """
-        ########################
-        # Write your code here #
-        ########################
+        df['book_to_arrival'] = (df.date_from - df.booking_date).dt.days
+        
+        return df
 
     @staticmethod
     def add_nrooms(df):
@@ -129,9 +131,13 @@ class DataPreprocessingToolkit(object):
         :return: A DataFrame with added weekend_stay column.
         :rtype: pd.DataFrame
         """
-        ########################
-        # Write your code here #
-        ########################
+        f = df.date_from.dt.dayofweek
+        t = df.date_to.dt.dayofweek
+        dt = (df.date_to- df.date_from).dt.days
+        contains_weekend = ( ((f >= 4) & (f != 6)) | ( t>=4) & (f != 6) | ((t < f) & (f != 6)) | (dt >= 6) )
+        
+        df['weekend_stay'] = contains_weekend
+        return df
 
     @staticmethod
     def add_night_price(df):
@@ -143,9 +149,8 @@ class DataPreprocessingToolkit(object):
         :return: A DataFrame with added night_price column.
         :rtype: pd.DataFrame
         """
-        ########################
-        # Write your code here #
-        ########################
+        df['night_price'] = df.accommodation_price/df.length_of_stay/df.n_rooms
+        return df
 
     @staticmethod
     def clip_book_to_arrival(df):
@@ -168,9 +173,8 @@ class DataPreprocessingToolkit(object):
         :return: A DataFrame with n_people column containing the number of all people in the reservation.
         :rtype: pd.DataFrame
         """
-        ########################
-        # Write your code here #
-        ########################
+        df['n_people'] = df.n_people + df.n_children_1 + df.n_children_2 + df.n_children_3
+        return df
 
     @staticmethod
     def leave_one_from_group_reservations(df):
@@ -198,29 +202,32 @@ class DataPreprocessingToolkit(object):
 
         return df
 
-    def aggregate_group_reservations(self, df):
-        """
-        Aggregates every group reservation into one reservation with aggregated data (for self.sum_columns a sum is
-        taken, for self.mean_columns a mean, for self.mode_columns a mode, for self.first_columns the first value).
+#     def aggregate_group_reservations(self, df):
+#         """
+#         Aggregates every group reservation into one reservation with aggregated data (for self.sum_columns a sum is
+#         taken, for self.mean_columns a mean, for self.mode_columns a mode, for self.first_columns the first value).
 
-        :param pd.DataFrame df: DataFrame with at least the group_id column.
-        :return: A DataFrame with aggregated group reservations.
-        :rtype: pd.DataFrame
-        """
-        non_group_reservations = df.loc[df['group_id'] == "",
-                                        self.sum_columns + self.mean_columns + self.mode_columns + self.first_columns]
-        group_reservations = df.loc[df['group_id'] != ""]
+#         :param pd.DataFrame df: DataFrame with at least the group_id column.
+#         :return: A DataFrame with aggregated group reservations.
+#         :rtype: pd.DataFrame
+#         """
+#         non_group_reservations = df.loc[df['group_id'] == "",
+#                                         self.sum_columns + self.mean_columns + self.mode_columns + self.first_columns]
+#         group_reservations = df.loc[df['group_id'] != ""]
 
-        # Apply group by on 'group_id' and take the sum in columns given under self.sum_columns
-        # Apply group by on 'group_id' and take the mean in columns given under self.mean_columns
-        # Apply group by on 'group_id' and take the mode (the most frequent value - you can use the pandas agg method
-        # and in the lambda function use the value_counts method) in columns given under self.mode_columns
-        # Apply group by on 'group_id' and take the first value in columns given under self.first_columns
-        # Then merge those columns into one dataset and finally concatenate the aggregated group reservations
-        # to non_group_reservations
-        ########################
-        # Write your code here #
-        ########################
+#         # Apply group by on 'group_id' and take the sum in columns given under self.sum_columns
+#         group_reservations = group_reservations.groupby('group_id')[self.sum_columns].sum()
+#         # Apply group by on 'group_id' and take the mean in columns given under self.mean_columns
+#         group_reservations = group_reservations.groupby('group_id')[self.mean_columns].sum()
+#         # Apply group by on 'group_id' and take the mode (the most frequent value - you can use the pandas agg method
+#         # and in the lambda function use the value_counts method) in columns given under self.mode_columns
+#         # Apply group by on 'group_id' and take the first value in columns given under self.first_columns
+#         # Then merge those columns into one dataset and finally concatenate the aggregated group reservations
+#         # to non_group_reservations
+        
+        
+#         df = pd.concat([non_group_reservations, group_reservations])
+#         return df
 
     @staticmethod
     def leave_only_ota(df):
@@ -260,9 +267,9 @@ class DataPreprocessingToolkit(object):
         :return: A DataFrame with the room_segment column.
         :rtype: pd.DataFrame
         """
-        ########################
-        # Write your code here #
-        ########################
+        df['room_group_id'] = df['room_segment'].apply(
+            lambda x: self.map_value_to_bucket(x, self.room_segment_buckets))
+        return df
 
     def map_npeople_to_npeople_buckets(self, df):
         """
