@@ -134,7 +134,9 @@ class DataPreprocessingToolkit(object):
         contains_weekend = ( ((f >= 4) & (f != 6)) | ( t>=4) & (f != 6) | ((t < f) & (f != 6)) | (dt >= 6) )
         
         df['weekend_stay'] = contains_weekend
-        return df
+        df_new1 = df.copy()                                                
+        df_new1['weekend_stay'] = df_new1['weekend_stay'].map({True: 'True', False: 'False'}) 
+        return df_new1
 
     @staticmethod
     def add_night_price(df):
@@ -146,7 +148,7 @@ class DataPreprocessingToolkit(object):
         :return: A DataFrame with added night_price column.
         :rtype: pd.DataFrame
         """
-        df['night_price'] = df.accommodation_price/df.length_of_stay/df.n_rooms
+        df['night_price'] = round(df.accommodation_price/df.length_of_stay/df.n_rooms,2)
         return df
 
     @staticmethod
@@ -220,12 +222,12 @@ class DataPreprocessingToolkit(object):
         # Then merge those columns into one dataset and finally concatenate the aggregated group reservations
         # to non_group_reservations
         
-        agg_datasets = [group_reservations.loc[:,['group_id'] + self.sum_columns].groupby('group_id'),
-                        group_reservations.loc[:,['group_id'] + self.mean_columns].groupby('group_id'),
-                        group_reservations.loc[:,['group_id'] + self.mode_columns].groupby('group_id').apply(
+        agg_datasets = [group_reservations.loc[:,['group_id'] + self.sum_columns].groupby('group_id')[self.sum_columns].sum(),
+                        group_reservations.loc[:,['group_id'] + self.mean_columns].groupby('group_id')[self.mean_columns].mean(),
+                        group_reservations.loc[:,['group_id'] + self.mode_columns].groupby('group_id')[self.mode_columns].agg(
                             lambda x: x.value_counts().index[0]),
-                        group_reservations.loc[:, ['group_id'] + self.first_columns].groupby('group_id')]
-                        
+                        group_reservations.loc[:, ['group_id'] + self.first_columns].groupby('group_id')[self.first_columns].sum()]
+                   
         group_reservations = agg_datasets[0]
         for i in range(1, len(agg_datasets)):
             group_reservations = group_reservations.merge(agg_datasets[i], on='group_id')
