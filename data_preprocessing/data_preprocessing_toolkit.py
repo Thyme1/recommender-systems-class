@@ -199,32 +199,42 @@ class DataPreprocessingToolkit(object):
 
         return df
 
-#     def aggregate_group_reservations(self, df):
-#         """
-#         Aggregates every group reservation into one reservation with aggregated data (for self.sum_columns a sum is
-#         taken, for self.mean_columns a mean, for self.mode_columns a mode, for self.first_columns the first value).
+    def aggregate_group_reservations(self, df):
+        """
+        Aggregates every group reservation into one reservation with aggregated data (for self.sum_columns a sum is
+        taken, for self.mean_columns a mean, for self.mode_columns a mode, for self.first_columns the first value).
 
-#         :param pd.DataFrame df: DataFrame with at least the group_id column.
-#         :return: A DataFrame with aggregated group reservations.
-#         :rtype: pd.DataFrame
-#         """
-#         non_group_reservations = df.loc[df['group_id'] == "",
-#                                         self.sum_columns + self.mean_columns + self.mode_columns + self.first_columns]
-#         group_reservations = df.loc[df['group_id'] != ""]
+        :param pd.DataFrame df: DataFrame with at least the group_id column.
+        :return: A DataFrame with aggregated group reservations.
+        :rtype: pd.DataFrame
+        """
+        non_group_reservations = df.loc[df['group_id'] == "",
+                                        self.sum_columns + self.mean_columns + self.mode_columns + self.first_columns]
+        group_reservations = df.loc[df['group_id'] != ""]
 
-#         # Apply group by on 'group_id' and take the sum in columns given under self.sum_columns
-#         group_reservations = group_reservations.groupby('group_id')[self.sum_columns].sum()
-#         # Apply group by on 'group_id' and take the mean in columns given under self.mean_columns
-#         group_reservations = group_reservations.groupby('group_id')[self.mean_columns].sum()
-#         # Apply group by on 'group_id' and take the mode (the most frequent value - you can use the pandas agg method
-#         # and in the lambda function use the value_counts method) in columns given under self.mode_columns
-#         # Apply group by on 'group_id' and take the first value in columns given under self.first_columns
-#         # Then merge those columns into one dataset and finally concatenate the aggregated group reservations
-#         # to non_group_reservations
+        # Apply group by on 'group_id' and take the sum in columns given under self.sum_columns
+        # Apply group by on 'group_id' and take the mean in columns given under self.mean_columns
+        # Apply group by on 'group_id' and take the mode (the most frequent value - you can use the pandas agg method
+        # and in the lambda function use the value_counts method) in columns given under self.mode_columns
+        # Apply group by on 'group_id' and take the first value in columns given under self.first_columns
+        # Then merge those columns into one dataset and finally concatenate the aggregated group reservations
+        # to non_group_reservations
         
+        agg_datasets = [group_reservations.loc[:,['group_id'] + self.sum_columns].groupby('group_id'),
+                        group_reservations.loc[:,['group_id'] + self.mean_columns].groupby('group_id'),
+                        group_reservations.loc[:,['group_id'] + self.mode_columns].groupby('group_id').apply(
+                            lambda x: x.value_counts().index[0]),
+                        group_reservations.loc[:, ['group_id'] + self.first_columns].groupby('group_id')]
+                        
+        group_reservations = agg_datasets[0]
+        for i in range(1, len(agg_datasets)):
+            group_reservations = group_reservations.merge(agg_datasets[i], on='group_id')
+                        
+                        
+        group_reservations = group_reservations.reset_index(drop=False)
         
-#         df = pd.concat([non_group_reservations, group_reservations])
-#         return df
+        df = pd.concat([non_group_reservations, group_reservations])
+        return df
 
     @staticmethod
     def leave_only_ota(df):
